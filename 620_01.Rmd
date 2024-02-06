@@ -1,0 +1,208 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+#install.packages('haven')
+#install.packages("sas7bdat")
+#install.packages("corrplot")
+#install.packages("tidyverse")
+#install.packages("car")
+#install.packages("ggplot2")
+#install.packages("readxl")
+#install.packages("dplyr")
+#install.packages("GGally")
+#install.packages("circular")
+library("circular")
+library("stats")
+library("GGally")
+library("dplyr")
+library("readxl")
+library("sas7bdat")
+library("corrplot")
+library("tidyverse")
+library("car")
+library("survival")
+library("ggplot2")
+```
+
+
+```{r}
+#data <- read_excel("C:/Users/23617/Desktop/620_Data.xlsx")
+data= read_excel(path="C:/Users/23617/Desktop/620_Data.xlsx", 
+                 col_types = c("date","text","numeric","text","numeric","numeric","date","numeric","numeric"))
+#data = data %>%
+#  mutate(Pickup.1st = as.POSIXct(paste(as.character(Date),
+#                                       unlist(lapply(Pickup.1st, #function(x){strsplit(as.character(x),split="-")[1][2]})))))
+                    
+#2(a)
+#Total ST (MIN)
+ggplot(data, aes(x = Date, y = Total.ST.min)) +
+  geom_line() +
+  labs(title = "Time Series Plot of Daily Total Screen Time", x = "Date", y = "Screen Time (mins)")
+
+#Total SST (MIN)
+ggplot(data, aes(x = Date, y = Social.ST.min)) +
+  geom_line() +
+  labs(title = "Time Series Plot of Daily Total Social Screen Time", x = "Date", y = "Social Screen Time (mins)")
+
+#Pickups
+ggplot(data, aes(x = Date, y = Pickups)) +
+  geom_line() +
+  labs(title = "Time Series Plot of number of pickups", x = "Date", y = "number of pickups")
+
+#Proportion of SST
+ggplot(data, aes(x = Date, y = Proportion_of_SST)) +
+  geom_line() +
+  labs(title = "Time Series Plot of Daily proportion of Social Screen Time", x = "Date", y = "Proportion of Social Screen Time")
+
+#Duration_per_use
+ggplot(data, aes(x = Date, y = Duration_per_use)) +
+  geom_line() +
+  labs(title = "Time Series Plot of Duration per use", x = "Date", y = "Proportion of Duration per use")
+
+```
+For the time series plots of daily total screen time, daily total social screen time and number of pickups, they all have higher number during Firday, Sarturday and Sunday.
+
+There's no significant pattern of the time series plots of proportion of social screen time and duration per use. The average proportion of social screen time is around 0.5 and the average duration per use is around 6.
+
+
+
+```{r}
+#2(b)
+ggpairs(data[,c('Total.ST.min','Social.ST.min','Pickups','Proportion_of_SST','Duration_per_use')])
+
+
+```
+
+Total screen time has significant positive correlation with Social screen time with corr = 0.586.
+
+Pickups has unsignificant negative correlations with Total screen time and Social screen time.
+
+Proportion of social screen time has unsignificant correlations with Total screen time and pickups. It has significant correlation with Social screen time with corr = 0.818.
+
+Duration per use has unsignificant correlation with proportion of Social screen time. It has significant correlation with Total screen time, Social screen time and pickups, with corr = 0.658, 0.523 and 0.829, respectively.
+
+The correlation between Duration per use and Pickups is the highest.
+
+```{r}
+ggplot(data, aes(x = data$Total.ST.min)) + 
+  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "skyblue", color = "black") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Occupation Time Curve for Total.ST.min", x = "Total.ST.min", y = "Density")
+
+ggplot(data, aes(x = data$Social.ST.min)) + 
+  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "skyblue", color = "black") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Occupation Time Curve for Social.ST.min", x = "Social.ST.min", y = "Density")
+
+ggplot(data, aes(x = data$Pickups)) + 
+  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "skyblue", color = "black") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Occupation Time Curve for Pickups", x = "Pickups", y = "Density")
+
+ggplot(data, aes(x = data$Proportion_of_SST)) + 
+  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "skyblue", color = "black") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Occupation Time Curve for Proportion_of_SST", x = "Proportion_of_SST", y = "Density")
+
+ggplot(data, aes(x = data$Duration_per_use)) + 
+  geom_histogram(aes(y = ..density..), binwidth = 1, fill = "skyblue", color = "black") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Occupation Time Curve for Duration_per_use", x = "Duration_per_use (min)", y = "Density")
+```
+Occupation Time Curve for Total.ST.min has an approximate normal distribution.
+
+Occupation Time Curve for Social.ST.min has an approximate normal distribution.
+
+Occupation Time Curve for Pickups has an approximate normal distribution.
+
+Occupation Time Curve for Proportion_of_SST has an approximate multimodal distribution with two peaks.
+
+Occupation Time Curve for Duration_per_use has an approximate left skewed distribution with long tail.
+
+
+
+```{r}
+#2(d)
+a <- acf(data$Total.ST.min, plot = T, main = "ACF for Daily Total Screen Time")
+b <- acf(data$Social.ST.min, plot = T, main = "ACF for Daily Social Screen Time")
+c <- acf(data$Pickups, plot = T, main = "ACF for Pickups")
+d <- acf(data$Proportion_of_SST, plot = T, main = "ACF for Proportion of SST")
+e <- acf(data$Duration_per_use, plot = T, main = "ACF for Duration per use")
+#print(c(a$acf,b$acf,c$acf,d$acf,e$acf))
+```
+The first acf-value has significant autocorrelation value, indicating the time series is not purely random. Instead, there's a systematic pattern in the time series.
+
+
+```{r}
+#3(a)
+data = data %>%
+   mutate(Pickup.1st.angular = (hour(Pickup.1st)*60 + minute(Pickup.1st))/(24*60)*360)
+   head(data)
+```
+
+```{r}
+#3(b)
+first.pickup.cir = circular(data$Pickup.1st.angular, units = "degrees", template = "clock24")
+png("3b.png")
+plot(first.pickup.cir, col="blue")
+dev.off()
+
+
+```
+The scatter points mainly lie around 8am, some of the points also lie around 10am.
+
+
+
+```{r}
+#3(c)
+png("3c.png")
+plot(first.pickup.cir, stack = TRUE, bins = 144, col = "blue")
+dev.off()
+```
+There's a Very tight timeframe for the first pickup time, it make sense to decrease the bin size. Setting bin size at 2.5 degree mean one bin representing 5 minutes in reality, which is an approperiate interval for the first pickup time.
+
+
+4(a)
+Because the pickup times is dependent on the daily total screen time. we can adjust for the pickup times linearly dependent on daily total screen time by multiply S_t with λ.
+```{r}
+#4(b)
+data$ST.Hour <- data$Total.ST.min / 60
+glm_model <- glm(Pickups ~ offset(log(ST.Hour)), family = poisson(link = "log"), data = data)
+summary(glm_model)
+
+```
+
+```{r}
+#4(c)
+data$Date <- as.Date(data$Date)
+data$X_t <- ifelse(weekdays(data$Date) %in% c("星期六", "星期日"), 0, 1)
+data$Z_t <- ifelse(data$Date >= as.Date("2024-01-10"), 1, 0)
+log_linear_model <- glm(Pickups ~ X_t + Z_t + offset(log(ST.Hour)), family = poisson(link = "log"), data = data)
+summary(log_linear_model)
+
+
+```
+c.1: There is a strong evidence suggesting a significantly different behavior of daily pickups between weekdays and weekends since the p-value for beta_xt is less than 0.05.
+
+c.2: There is a strong evidence suggesting a significantly change on the behavior of daily pickups after winter semester began since the p-value for beta_zt is less than 0.05.
+
+
+
+```{r}
+#5(a)
+data$Pickup.1st.num <- (hour(data$Pickup.1st) + minute(data$Pickup.1st)/60)
+
+estimates <- mle.vonmises(data$Pickup.1st.num)
+print(estimates)
+
+#5(b)
+
+prob <- 1 - pvonmises(8.5, mu = estimates$mu, kappa = estimates$kappa)
+print(prob)
+
+```
+
